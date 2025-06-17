@@ -1,0 +1,118 @@
+<?php
+/**
+ * Plugin Name: WooCommerce Factura.com
+ * Description: Integración simple con Factura.com
+ * Version: 1.0.0
+ * Author: Tu Nombre
+ * Text Domain: woo-factura-com
+ */
+
+// Evitar acceso directo
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+// Definir constantes solo si las funciones de WordPress están disponibles
+if (!defined('WOO_FACTURA_COM_VERSION')) {
+    define('WOO_FACTURA_COM_VERSION', '1.0.0');
+}
+
+if (function_exists('plugin_dir_path')) {
+    define('WOO_FACTURA_COM_PLUGIN_DIR', plugin_dir_path(__FILE__));
+} else {
+    define('WOO_FACTURA_COM_PLUGIN_DIR', dirname(__FILE__) . '/');
+}
+
+// Clase principal
+if (!class_exists('WooFacturaCom')) {
+    class WooFacturaCom {
+        
+        private static $instance = null;
+        
+        public static function get_instance() {
+            if (self::$instance === null) {
+                self::$instance = new self();
+            }
+            return self::$instance;
+        }
+        
+        private function __construct() {
+            // Solo agregar hooks si estamos en WordPress
+            if (function_exists('add_action')) {
+                add_action('admin_menu', array($this, 'add_admin_menu'));
+            }
+        }
+        
+        public function add_admin_menu() {
+            if (function_exists('add_submenu_page')) {
+                add_submenu_page(
+                    'woocommerce',
+                    'Factura.com',
+                    'Factura.com',
+                    'manage_options',
+                    'woo-factura-com',
+                    array($this, 'admin_page')
+                );
+            }
+        }
+        
+        public function admin_page() {
+            echo '<div class="wrap">';
+            echo '<h1>WooCommerce Factura.com</h1>';
+            echo '<p>✅ Plugin funcionando correctamente!</p>';
+            
+            if (class_exists('WooCommerce')) {
+                echo '<p>WooCommerce: ✅ Detectado</p>';
+            } else {
+                echo '<p>WooCommerce: ❌ No encontrado</p>';
+            }
+            
+            if (function_exists('get_bloginfo')) {
+                echo '<p>WordPress Version: ' . get_bloginfo('version') . '</p>';
+            }
+            
+            echo '<p>PHP Version: ' . phpversion() . '</p>';
+            echo '</div>';
+        }
+        
+        public function test_function() {
+            return "Clase WooFacturaCom cargada correctamente";
+        }
+    }
+}
+
+// Solo ejecutar hooks de WordPress si estamos en WordPress
+if (function_exists('add_action')) {
+    
+    // Inicializar el plugin cuando WordPress esté listo
+    add_action('plugins_loaded', function() {
+        if (class_exists('WooCommerce')) {
+            WooFacturaCom::get_instance();
+        } else {
+            add_action('admin_notices', function() {
+                echo '<div class="notice notice-error"><p>WooCommerce Factura.com requiere WooCommerce activo.</p></div>';
+            });
+        }
+    });
+    
+    // Hook de activación
+    if (function_exists('register_activation_hook')) {
+        register_activation_hook(__FILE__, function() {
+            if (!class_exists('WooCommerce')) {
+                if (function_exists('wp_die')) {
+                    wp_die('Este plugin requiere WooCommerce. Instala WooCommerce primero.');
+                }
+            }
+            if (function_exists('add_option')) {
+                add_option('woo_factura_com_version', WOO_FACTURA_COM_VERSION);
+            }
+        });
+    }
+    
+    // Hook de desactivación
+    if (function_exists('register_deactivation_hook')) {
+        register_deactivation_hook(__FILE__, function() {
+            // Limpiar si es necesario
+        });
+    }
+}
